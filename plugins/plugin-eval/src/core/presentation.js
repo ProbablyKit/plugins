@@ -1,4 +1,5 @@
 import { formatCommandPath, relativePath } from "../lib/files.js";
+import { distributionFlag } from "./distribution.js";
 import { enrichSummary } from "./scoring.js";
 
 function shellQuote(value) {
@@ -25,8 +26,8 @@ function targetTypeLabel(target) {
   return "item";
 }
 
-function buildStartCommand(target, chatPrompt) {
-  return `plugin-eval start ${formatCommandPath(target.path)} --request ${shellQuote(chatPrompt)} --format markdown`;
+function buildStartCommand(target, chatPrompt, distribution) {
+  return `plugin-eval start ${formatCommandPath(target.path)} --request ${shellQuote(chatPrompt)} --format markdown${distributionFlag(distribution)}`;
 }
 
 function hasStructuralFailures(result) {
@@ -53,7 +54,7 @@ export function createEvaluationNextAction(result) {
     return {
       label: "Fix structural issues first",
       why: "Failing manifest or skill structure issues reduce trust and can invalidate later measurements.",
-      command: buildStartCommand(result.target, "What should I fix first?"),
+      command: buildStartCommand(result.target, "What should I fix first?", result.distribution),
       chatPrompt: "What should I fix first?",
     };
   }
@@ -62,7 +63,7 @@ export function createEvaluationNextAction(result) {
     return {
       label: "Measure real token usage next",
       why: "The static budget looks heavy, so live usage is the fastest way to confirm whether the cost is acceptable.",
-      command: buildStartCommand(result.target, `Measure the real token usage of this ${labelName}.`),
+      command: buildStartCommand(result.target, `Measure the real token usage of this ${labelName}.`, result.distribution),
       chatPrompt: `Measure the real token usage of this ${labelName}.`,
     };
   }
@@ -71,7 +72,7 @@ export function createEvaluationNextAction(result) {
     return {
       label: "Review the measurement plan",
       why: "You already have observed usage, so the highest-value next step is deciding what to instrument or improve.",
-      command: buildStartCommand(result.target, "What should I run next?"),
+      command: buildStartCommand(result.target, "What should I run next?", result.distribution),
       chatPrompt: "What should I run next?",
     };
   }
@@ -80,7 +81,7 @@ export function createEvaluationNextAction(result) {
     return {
       label: "Fix the top findings and rerun the report",
       why: "A short pass on the highest-value findings will improve trust, readability, and the signal quality of future benchmarks.",
-      command: buildStartCommand(result.target, "What should I fix first?"),
+      command: buildStartCommand(result.target, "What should I fix first?", result.distribution),
       chatPrompt: "What should I fix first?",
     };
   }
@@ -88,7 +89,7 @@ export function createEvaluationNextAction(result) {
   return {
     label: "Choose the next workflow from chat",
     why: "The report is clean enough that the best next step depends on whether you want budgets, benchmarks, or comparisons.",
-    command: buildStartCommand(result.target, "What should I run next?"),
+    command: buildStartCommand(result.target, "What should I run next?", result.distribution),
     chatPrompt: "What should I run next?",
   };
 }
@@ -120,7 +121,7 @@ export function createMeasurementPlanNextAction(plan) {
     why: toolset
       ? toolset.goal
       : "A small measurement pass will turn the current report into a more trustworthy workflow decision.",
-    command: buildStartCommand(plan.target, `What should I run next?`),
+    command: buildStartCommand(plan.target, `What should I run next?`, plan.distribution),
     chatPrompt: `What should I run next?`,
     ...(toolset ? { toolsetId: toolset.id } : {}),
     ...(toolset

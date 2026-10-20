@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { loadBudgetBaseline } from "./baseline.js";
 import { applyBudgetBands, computeBudgetProfile } from "./budget.js";
+import { normalizeDistribution } from "./distribution.js";
 import { buildImprovementBrief } from "./improvement-brief.js";
 import { buildMeasurementPlan } from "./measurement-plan.js";
 import { runMetricPacks } from "./metric-packs.js";
@@ -94,11 +95,12 @@ function normalizeExtensionPayload(extension) {
 export async function analyzePath(targetPath, options = {}) {
   const target = await resolveTarget(targetPath);
   const result = createEvaluationResult(target);
+  result.distribution = normalizeDistribution(options.distribution);
 
   if (target.kind === "skill") {
     appendFragment(result, await evaluateSkill(target.path));
   } else if (target.kind === "plugin") {
-    appendFragment(result, await evaluatePlugin(target.path));
+    appendFragment(result, await evaluatePlugin(target.path, { distribution: result.distribution }));
   } else {
     result.checks.push(
       createCheck({
@@ -135,6 +137,7 @@ export async function analyzePath(targetPath, options = {}) {
   result.improvementBrief = buildImprovementBrief(result);
   result.workflowGuide = await buildWorkflowGuide(target.path, {
     goal: result.observedUsage?.sampleCount ? "measure" : "evaluate",
+    distribution: options.distribution,
   });
   result.measurementPlan.nextAction = createMeasurementPlanNextAction(result.measurementPlan);
   applyEvaluationPresentation(result);
@@ -165,6 +168,7 @@ export async function recommendMeasures(targetPath, options = {}) {
     ...result.measurementPlan,
     workflowGuide: await buildWorkflowGuide(result.target.path, {
       goal: "measure",
+      distribution: options.distribution,
     }),
   };
   payload.nextAction = payload.nextAction || createMeasurementPlanNextAction(payload);

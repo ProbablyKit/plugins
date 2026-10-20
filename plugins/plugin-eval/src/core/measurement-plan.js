@@ -185,6 +185,7 @@ export function buildMeasurementPlan(result) {
 
   const payload = {
     kind: "measurement-plan",
+    distribution: result.distribution ?? "unspecified",
     createdAt: new Date().toISOString(),
     target: result.target,
     title: `Measurement plan for ${result.target.name}`,

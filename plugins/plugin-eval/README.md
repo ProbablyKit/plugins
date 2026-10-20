@@ -87,6 +87,15 @@ plugin-eval start . --request "Help me benchmark this plugin." --format markdown
 
 ### Core Commands
 
+Plugin grading separates operational checks from public distribution requirements:
+
+```bash
+plugin-eval analyze <path> --distribution private-local --format markdown
+plugin-eval analyze <path> --distribution public --format markdown
+```
+
+Only explicit `public` scope grades missing website, privacy-policy, and terms-of-service URLs. Private local plugins receive no deductions for those fields. The default `unspecified` scope also leaves public listing metadata ungraded and records that scope in the result artifacts; it does not claim the plugin is private. A local source path, repository URL, or npm `private` flag does not establish distribution scope. Other manifest, path, skill, budget, and code checks remain active. `start` and `measurement-plan` accept the same option, and generated analysis commands preserve it.
+
 ```bash
 plugin-eval analyze <path> --format markdown
 plugin-eval explain-budget <path> --format markdown
