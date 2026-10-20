@@ -3,6 +3,7 @@ import path from "node:path";
 import { formatCommandPath, pathExists, relativePath } from "../lib/files.js";
 import { createWorkflowGuideNextAction } from "./presentation.js";
 import { resolveTarget } from "./target.js";
+import { additionalContextFlags } from "./context-options.js";
 
 function shellQuote(value) {
   return `'${String(value).replaceAll("'", "'\\''")}'`;
@@ -324,10 +325,12 @@ function inferRecommendedGoal(status, explicitGoal) {
   return "evaluate";
 }
 
-function createEntry(goal, target, status) {
+function createEntry(goal, target, status, additionalContextPaths) {
   const commandTargetPath = formatCommandPath(target.path);
   const chatPrompt = chatPromptForGoal(goal, target);
-  const commands = commandsForGoal(goal, target, status);
+  const flags = additionalContextFlags(additionalContextPaths);
+  const commands = commandsForGoal(goal, target, status).map((command) =>
+    /^plugin-eval (analyze|measurement-plan|explain-budget) /.test(command) ? command + flags : command);
   return {
     id: goal,
     label: workflowLabel(goal, target),
@@ -335,7 +338,7 @@ function createEntry(goal, target, status) {
     summary: summaryForGoal(goal, target, status),
     firstCommand: commands[0],
     commands,
-    startCommand: `plugin-eval start ${commandTargetPath} --request ${shellQuote(chatPrompt)} --format markdown`,
+    startCommand: `plugin-eval start ${commandTargetPath} --request ${shellQuote(chatPrompt)} --format markdown${flags}`,
   };
 }
 
@@ -348,12 +351,12 @@ export async function buildWorkflowGuide(targetPath, options = {}) {
   const requestMatch = inferGoalFromRequest(options.request || "");
 
   const entries = [
-    createEntry("analysis", target, status),
-    createEntry("evaluate", target, status),
-    createEntry("budget", target, status),
-    createEntry("measure", target, status),
-    createEntry("benchmark", target, status),
-    createEntry("next", target, status),
+    createEntry("analysis", target, status, options.additionalContextPaths),
+    createEntry("evaluate", target, status, options.additionalContextPaths),
+    createEntry("budget", target, status, options.additionalContextPaths),
+    createEntry("measure", target, status, options.additionalContextPaths),
+    createEntry("benchmark", target, status, options.additionalContextPaths),
+    createEntry("next", target, status, options.additionalContextPaths),
   ];
 
   const requestedGoal = options.goal || requestMatch?.goal || null;
@@ -385,7 +388,7 @@ export async function buildWorkflowGuide(targetPath, options = {}) {
       label: recommendedWorkflow.label,
       summary: recommendedWorkflow.summary,
       routingExplanation,
-      startCommand: `plugin-eval start ${commandTargetPath} --request ${shellQuote(routedRequest)} --format markdown`,
+      startCommand: `plugin-eval start ${commandTargetPath} --request ${shellQuote(routedRequest)} --format markdown${additionalContextFlags(options.additionalContextPaths)}`,
       firstCommand: recommendedWorkflow.firstCommand,
       commands: recommendedWorkflow.commands,
     },

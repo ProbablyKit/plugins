@@ -17,6 +17,10 @@ Use this skill when the target is a plugin root with `.codex-plugin/plugin.json`
 6. If the user wants measured usage, switch to "Help me benchmark this plugin." and use the starter benchmark flow.
 7. If the user wants trend data, compare two JSON outputs with `plugin-eval compare`.
 
+## Interpret Results
+
+Report the four assessment areas separately. Explain that the numeric index and letter grade use uncalibrated static heuristics; they do not establish runtime correctness or security. Keep optional supporting/package inventories separate from loaded context. Missing tests or coverage artifacts are evidence gaps, not measured failures. Include known external instruction files with repeatable `--additional-context <file>` when relevant, and retain the explicit unknown-coverage notice. Do not attribute whole-session token usage to this plugin without matched or attributed evidence. Do not compare numeric deltas across different method versions.
+
 ## Chat Requests To Recognize
 
 - `Evaluate this plugin.`
