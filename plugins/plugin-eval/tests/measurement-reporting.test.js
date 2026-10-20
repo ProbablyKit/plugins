@@ -37,10 +37,11 @@ test("CLI includes explicitly supplied external instructions in budget estimates
   const external = path.join(root, "external skill.md");
   await fs.writeFile(external, "External instruction.\n".repeat(30));
   const { stdout } = await execFileAsync(process.execPath,
-    [cli, "explain-budget", fixture, "--additional-context", external, "--format", "json"], { timeout: 30000 });
+    [cli, "explain-budget", fixture, "--additional-context", external, "--distribution", "private-local", "--format", "json"], { timeout: 30000 });
   const result = JSON.parse(stdout);
   assert.equal(result.budgets.external_context.components.length, 1);
   assert.equal(result.budgets.external_context.complete, false);
+  assert.match(result.nextAction.command, /--distribution private-local/);
   assert.ok(result.budgets.invoke_cost_tokens.components.some((item) => path.resolve(item.path) === external));
 });
 
@@ -53,10 +54,13 @@ test("analysis and suggested follow-up commands preserve explicitly selected con
   const root = await workspace(t);
   const external = path.join(root, "extra instructions.md");
   await fs.writeFile(external, "Read these additional instructions.");
-  const result = await analyzePath(fixture, { additionalContextPaths: [external] });
+  const result = await analyzePath(fixture, { additionalContextPaths: [external], distribution: "public" });
   assert.match(result.nextAction.command, /--additional-context/);
   assert.match(result.measurementPlan.nextAction.command, /--additional-context/);
   assert.match(result.workflowGuide.startHere.firstCommand, /--additional-context/);
+  assert.match(result.nextAction.command, /--distribution public/);
+  assert.match(result.measurementPlan.nextAction.command, /--distribution public/);
+  assert.match(result.workflowGuide.startHere.firstCommand, /--distribution public/);
   const { stdout } = await execFileAsync(process.execPath,
     [cli, "start", fixture, "--additional-context", external, "--format", "json"], { timeout: 30000 });
   assert.match(JSON.parse(stdout).startHere.firstCommand, /--additional-context/);

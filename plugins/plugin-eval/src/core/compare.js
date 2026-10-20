@@ -1,9 +1,12 @@
 import { createComparisonNextAction } from "./presentation.js";
 
 export function compareResults(before, after) {
-  const scoreComparable = (before.summary.assessment?.method || "legacy-v1") ===
+  const sameGradingMethod = (before.summary.assessment?.method || "legacy-v1") ===
     (after.summary.assessment?.method || "legacy-v1");
-  const budgetComparable = (before.budgets.measurement?.version || 1) === (after.budgets.measurement?.version || 1);
+  const sameDistribution = (before.distribution || "unspecified") === (after.distribution || "unspecified");
+  const scoreComparable = sameGradingMethod && sameDistribution;
+  const sameContext = JSON.stringify([...(before.additionalContextPaths || [])].sort()) === JSON.stringify([...(after.additionalContextPaths || [])].sort());
+  const budgetComparable = sameContext && (before.budgets.measurement?.version || 1) === (after.budgets.measurement?.version || 1);
   const beforeFailures = new Set(
     before.checks.filter((check) => check.status === "fail").map((check) => check.id),
   );
@@ -18,12 +21,15 @@ export function compareResults(before, after) {
     kind: "comparison",
     createdAt: new Date().toISOString(),
     target: after.target,
+    distribution: after.distribution || "unspecified",
     additionalContextPaths: after.additionalContextPaths || [],
     scoreComparable,
-    comparisonNote: scoreComparable ? null : "Grading methods differ; score changes cannot be attributed to plugin changes.",
+    comparisonNote: scoreComparable ? null : !sameGradingMethod
+      ? "Grading methods differ; score changes cannot be attributed to plugin changes."
+      : "Distribution scopes differ; score changes cannot be attributed to plugin quality changes.",
     scoreDelta: scoreComparable ? after.summary.score - before.summary.score : null,
     budgetComparable,
-    budgetComparisonNote: budgetComparable ? null : "Budget measurement definitions differ; inventory deltas are not comparable.",
+    budgetComparisonNote: budgetComparable ? null : "Budget measurement definitions or selected context paths differ; inventory deltas are not comparable.",
     gradeBefore: before.summary.grade,
     gradeAfter: after.summary.grade,
     riskBefore: before.summary.riskLevel,

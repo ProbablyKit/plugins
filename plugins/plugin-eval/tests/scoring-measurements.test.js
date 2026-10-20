@@ -60,7 +60,17 @@ test("UI length preferences are not operational failures", () => {
 test("comparison continuation retains the evaluated context scenario", () => {
   const after = result();
   after.additionalContextPaths = ["/fixture/context.md"];
+  after.distribution = "private-local";
   assert.match(compareResults(result(), after).nextAction.command, /--additional-context/);
+  assert.match(compareResults(result(), after).nextAction.command, /--distribution private-local/);
+});
+
+test("comparison does not treat distribution-scope changes as quality improvements", () => {
+  const before = result();
+  before.distribution = "public";
+  const after = result();
+  after.distribution = "private-local";
+  assert.equal(compareResults(before, after).scoreDelta, null);
 });
 
 test("static grades explicitly disclose that their weights are not calibrated", () => {
